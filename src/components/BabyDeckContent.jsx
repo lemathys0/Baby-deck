@@ -43,9 +43,11 @@ export default function BabyDeckContent({ user }) {
           if (entry) {
             const [, data] = entry;
 
-            if (typeof data === "object") {
-              const type = data.type.toLowerCase(); // forcer en minuscules
-              if (categorized[type]) {
+            if (typeof data === "object" && data.type) {
+              const type = data.type.toLowerCase().trim();
+              console.log(`Carte trouvée: ${cardName}, type: ${type}`);
+              // Vérifier que type est bien une catégorie valide
+              if (["joueur", "equipement", "defi"].includes(type)) {
                 categorized[type].push(cardName);
               } else {
                 categorized.defi.push(cardName);
