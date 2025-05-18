@@ -38,7 +38,7 @@ const Auth = ({ theme = "light" }) => {
             uid: doc.id,
             pseudo: d.pseudo || "(Pas de pseudo)",
             cards: d.cards || [],
-            totalCards: d.totalCards || 2, // Valeur par défaut si pas dans Firestore
+            totalCards: d.totalCards || 10, // Valeur par défaut si pas dans Firestore
           };
         });
         setAllUsersCards(data);
