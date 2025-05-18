@@ -10,8 +10,9 @@ export default function BabyDeckContent({ user }) {
 
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-  const [cards, setCards] = useState([]); // stocke les codes des cartes
+  const [cards, setCards] = useState([]); // Liste des codes stockés
 
+  // categorizedCards ici contiendra des tableaux de noms d’images pour chaque catégorie
   const [categorizedCards, setCategorizedCards] = useState({
     joueur: [],
     equipement: [],
@@ -28,29 +29,27 @@ export default function BabyDeckContent({ user }) {
         const userCards = docSnap.data().cards || [];
         setCards(userCards);
 
-        console.log("Cartes depuis Firestore:", userCards);
-
+        // Initialisation des catégories
         const categorized = {
           joueur: [],
           equipement: [],
           defi: [],
         };
 
-        userCards.forEach((cardCode) => {
-          const cardEntry = codeToCardMap[cardCode];
-
-          if (cardEntry) {
-            const type = cardEntry.type.toLowerCase();
-            console.log(`Carte trouvée: ${cardCode}, type: ${type}`);
-
+        userCards.forEach((code) => {
+          const data = codeToCardMap[code];
+          if (data && typeof data === "object") {
+            const type = data.type.toLowerCase();
             if (categorized[type]) {
-              categorized[type].push(cardCode);
+              categorized[type].push(data.nom); // on stocke le nom de l'image ici
             } else {
-              categorized.defi.push(cardCode);
-              console.warn(`Type inconnu "${type}" pour la carte ${cardCode}, classée en défi par défaut.`);
+              categorized.defi.push(data.nom);
+              console.warn(`Type inconnu "${type}" pour la carte ${code}, classée en défi.`);
             }
           } else {
-            console.warn(`Carte non trouvée dans codeToCardMap: ${cardCode}`);
+            // code non trouvé dans codeToCardMap, on peut log ou classer autrement
+            categorized.defi.push(code);
+            console.warn(`Code non trouvé dans codeToCardMap : ${code}`);
           }
         });
 
@@ -145,8 +144,8 @@ export default function BabyDeckContent({ user }) {
         <li>📦 Total : {cards.length}</li>
       </ul>
 
-      {/* Pour afficher la grille, on peut donner les codes, à CardGrid de récupérer les noms */}
-      <CardGrid categorizedCards={categorizedCards} theme={theme} codeToCardMap={codeToCardMap} />
+      {/* On passe les noms d'images pour l’affichage */}
+      <CardGrid categorizedCards={categorizedCards} theme={theme} />
     </div>
   );
 }

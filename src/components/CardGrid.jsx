@@ -1,33 +1,9 @@
 import React from "react";
 
-export default function CardGrid({ categorizedCards, theme, codeToCardMap }) {
-  return (
-    <div>
-      {Object.entries(categorizedCards).map(([category, codes]) => (
-        <div key={category}>
-          <h5>{category}</h5>
-          <div style={{ display: "flex", flexWrap: "wrap" }}>
-            {codes.map(code => {
-              const card = codeToCardMap[code];
-              return (
-                <img
-                  key={code}
-                  src={`/images/${card.nom}`} // chemin vers l'image
-                  alt={card.nom}
-                  style={{ width: "80px", margin: "5px" }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
+export default function CardGrid({ categorizedCards, theme }) {
   return (
     <div style={{ marginTop: 20 }}>
-      {Object.entries(categorizedCards).map(([category, cards]) => (
+      {Object.entries(categorizedCards).map(([category, images]) => (
         <div key={category} style={{ marginBottom: "30px" }}>
           <h5 style={{ textTransform: "capitalize", marginBottom: "10px" }}>
             {category === "joueur"
@@ -46,7 +22,14 @@ export default function CardGrid({ categorizedCards, theme, codeToCardMap }) {
               justifyContent: "center",
             }}
           >
-            {renderCards(cards)}
+            {images.map((imgName) => (
+              <img
+                key={imgName}
+                src={`/images/card/${imgName}`}
+                alt={imgName}
+                style={{ width: "80px", borderRadius: "8px" }}
+              />
+            ))}
           </div>
         </div>
       ))}
