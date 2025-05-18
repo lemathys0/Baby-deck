@@ -28,7 +28,7 @@ export default function CardGrid({ categorizedCards, theme, codeToCardMap }) {
               return (
                 <img
                   key={code}
-                  src={`/images/card/${card.nom}`}
+                  src={`/images/cards/${card.nom}`}
                   alt={card.nom}
                   style={{ width: "80px", margin: "5px" }}
                 />

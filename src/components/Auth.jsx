@@ -38,7 +38,7 @@ const Auth = ({ theme = "light" }) => {
             uid: doc.id,
             pseudo: d.pseudo || "(Pas de pseudo)",
             cards: d.cards || [],
-            totalCards: d.totalCards || 2,
+            totalCards: d.totalCards || 32,
           };
         });
         setAllUsersCards(data);
@@ -69,7 +69,7 @@ const Auth = ({ theme = "light" }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
-      await setDoc(doc(db, "users", uid), { cards: [], pseudo: "", avatar: "", totalCards: 40 });
+      await setDoc(doc(db, "users", uid), { cards: [], pseudo: "", avatar: "", totalCards: 32 });
       alert("Inscription réussie !");
       setIsRegistering(false);
     } catch (e) {
