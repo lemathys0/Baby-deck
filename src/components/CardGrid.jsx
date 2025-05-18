@@ -1,9 +1,9 @@
 import React from "react";
 
-export default function CardGrid({ categorizedCards, theme }) {
+export default function CardGrid({ categorizedCards, theme, codeToCardMap }) {
   return (
     <div style={{ marginTop: 20 }}>
-      {Object.entries(categorizedCards).map(([category, images]) => (
+      {Object.entries(categorizedCards).map(([category, codes]) => (
         <div key={category} style={{ marginBottom: "30px" }}>
           <h5 style={{ textTransform: "capitalize", marginBottom: "10px" }}>
             {category === "joueur"
@@ -22,14 +22,18 @@ export default function CardGrid({ categorizedCards, theme }) {
               justifyContent: "center",
             }}
           >
-            {images.map((imgName) => (
-              <img
-                key={imgName}
-                src={`/images/card/${imgName}`}
-                alt={imgName}
-                style={{ width: "80px", borderRadius: "8px" }}
-              />
-            ))}
+            {codes.map((code) => {
+              const card = codeToCardMap[code];
+              if (!card) return null;
+              return (
+                <img
+                  key={code}
+                  src={`/images/card/${card.nom}`}
+                  alt={card.nom}
+                  style={{ width: "80px", margin: "5px" }}
+                />
+              );
+            })}
           </div>
         </div>
       ))}

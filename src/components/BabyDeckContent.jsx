@@ -10,9 +10,8 @@ export default function BabyDeckContent({ user }) {
 
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-  const [cards, setCards] = useState([]); // Liste des codes stockés
+  const [cards, setCards] = useState([]); // stocke les codes des cartes
 
-  // categorizedCards ici contiendra des tableaux de noms d’images pour chaque catégorie
   const [categorizedCards, setCategorizedCards] = useState({
     joueur: [],
     equipement: [],
@@ -29,7 +28,6 @@ export default function BabyDeckContent({ user }) {
         const userCards = docSnap.data().cards || [];
         setCards(userCards);
 
-        // Initialisation des catégories
         const categorized = {
           joueur: [],
           equipement: [],
@@ -37,18 +35,16 @@ export default function BabyDeckContent({ user }) {
         };
 
         userCards.forEach((code) => {
-          const data = codeToCardMap[code];
-          if (data && typeof data === "object") {
-            const type = data.type.toLowerCase();
+          const card = codeToCardMap[code];
+          if (card) {
+            const type = card.type.toLowerCase();
             if (categorized[type]) {
-              categorized[type].push(data.nom); // on stocke le nom de l'image ici
+              categorized[type].push(code);
             } else {
-              categorized.defi.push(data.nom);
-              console.warn(`Type inconnu "${type}" pour la carte ${code}, classée en défi.`);
+              categorized.defi.push(code);
+              console.warn(`Type inconnu "${type}" pour la carte ${code}, classée en défi par défaut.`);
             }
           } else {
-            // code non trouvé dans codeToCardMap, on peut log ou classer autrement
-            categorized.defi.push(code);
             console.warn(`Code non trouvé dans codeToCardMap : ${code}`);
           }
         });
@@ -144,8 +140,7 @@ export default function BabyDeckContent({ user }) {
         <li>📦 Total : {cards.length}</li>
       </ul>
 
-      {/* On passe les noms d'images pour l’affichage */}
-      <CardGrid categorizedCards={categorizedCards} theme={theme} />
+      <CardGrid categorizedCards={categorizedCards} theme={theme} codeToCardMap={codeToCardMap} />
     </div>
   );
 }

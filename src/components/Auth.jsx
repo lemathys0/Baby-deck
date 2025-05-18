@@ -38,7 +38,7 @@ const Auth = ({ theme = "light" }) => {
             uid: doc.id,
             pseudo: d.pseudo || "(Pas de pseudo)",
             cards: d.cards || [],
-            totalCards: d.totalCards || 2, // Valeur par défaut si pas dans Firestore
+            totalCards: d.totalCards || 2,
           };
         });
         setAllUsersCards(data);
@@ -69,7 +69,7 @@ const Auth = ({ theme = "light" }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
-      await setDoc(doc(db, "users", uid), { cards: [], pseudo: "", avatar: "", totalCards:  });
+      await setDoc(doc(db, "users", uid), { cards: [], pseudo: "", avatar: "", totalCards: 40 });
       alert("Inscription réussie !");
       setIsRegistering(false);
     } catch (e) {
@@ -90,10 +90,8 @@ const Auth = ({ theme = "light" }) => {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p>Connecté en tant que {user.email}</p>
-          {/* Bouton déconnexion supprimé ici pour éviter doublon */}
         </div>
 
-        {/* On passe handleLogout à ProfileMenu */}
         <ProfileMenu user={user} theme={theme} onLogout={handleLogout} />
 
         <BabyDeckContent user={user} />
@@ -104,7 +102,7 @@ const Auth = ({ theme = "light" }) => {
         <ul>
           {allUsersCards.map((u) => (
             <li key={u.uid} style={{ marginBottom: 6 }}>
-              <strong>{u.pseudo}</strong> : {u.cards.length} / {u.totalCards} cartes débloquées
+              <strong>{u.pseudo}</strong> - {u.cards.length} / {u.totalCards} cartes
             </li>
           ))}
         </ul>
@@ -113,99 +111,49 @@ const Auth = ({ theme = "light" }) => {
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: "auto" }}>
+    <div style={{ maxWidth: 320, margin: "30px auto" }}>
+      <h3>{isRegistering ? "Inscription" : "Connexion"}</h3>
       <input
         type="email"
+        placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-        style={{
-          width: "100%",
-          padding: 8,
-          marginBottom: 10,
-          borderRadius: 5,
-          border: "1px solid #ccc",
-          backgroundColor: theme === "dark" ? "#333" : "#fff",
-          color: theme === "dark" ? "#eee" : "#111",
-        }}
+        style={{ marginBottom: 10, width: "100%", padding: "8px" }}
       />
       <input
         type="password"
+        placeholder="Mot de passe"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Mot de passe"
-        style={{
-          width: "100%",
-          padding: 8,
-          marginBottom: 10,
-          borderRadius: 5,
-          border: "1px solid #ccc",
-          backgroundColor: theme === "dark" ? "#333" : "#fff",
-          color: theme === "dark" ? "#eee" : "#111",
-        }}
+        style={{ marginBottom: 10, width: "100%", padding: "8px" }}
       />
-
       {isRegistering ? (
         <>
-          <button
-            onClick={handleRegister}
-            style={{
-              width: "100%",
-              padding: 10,
-              backgroundColor: "#4caf50",
-              color: "#fff",
-              border: "none",
-              borderRadius: 5,
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={handleRegister} style={{ width: "100%", padding: "8px" }}>
             S'inscrire
           </button>
-          <p style={{ marginTop: 10, textAlign: "center" }}>
+          <p style={{ marginTop: 10 }}>
             Déjà un compte ?{" "}
             <button
-              type="button"
               onClick={() => setIsRegistering(false)}
-              style={{
-                background: "none",
-                border: "none",
-                color: theme === "dark" ? "#4caf50" : "#1a73e8",
-                cursor: "pointer",
-              }}
+              style={{ color: "blue", background: "none", border: "none", cursor: "pointer" }}
             >
-              Se connecter
+              Connectez-vous
             </button>
           </p>
         </>
       ) : (
         <>
-          <button
-            onClick={handleLogin}
-            style={{
-              width: "100%",
-              padding: 10,
-              backgroundColor: "#1a73e8",
-              color: "#fff",
-              border: "none",
-              borderRadius: 5,
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={handleLogin} style={{ width: "100%", padding: "8px" }}>
             Se connecter
           </button>
-          <p style={{ marginTop: 10, textAlign: "center" }}>
+          <p style={{ marginTop: 10 }}>
             Pas encore de compte ?{" "}
             <button
-              type="button"
               onClick={() => setIsRegistering(true)}
-              style={{
-                background: "none",
-                border: "none",
-                color: theme === "dark" ? "#4caf50" : "#1a73e8",
-                cursor: "pointer",
-              }}
+              style={{ color: "blue", background: "none", border: "none", cursor: "pointer" }}
             >
-              S'inscrire
+              Inscrivez-vous
             </button>
           </p>
         </>
