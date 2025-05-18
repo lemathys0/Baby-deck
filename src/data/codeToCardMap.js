@@ -53,9 +53,9 @@ const codeToCardMap = {
 
   
 "BQL-7621-MZX": { nom: "Chaussure-magnetique.png", type: "equipement" },
-"NVA-0387-CTW": { nom: "Telescope.png", type: "defi" },
-"KXP-9035-ESN": { nom: "Gant.png", type: "defi" },
-"JRD-6184-YKF": { nom: "Ballon.png", type: "defi" },
+"NVA-0387-CTW": { nom: "Telescope.png", type: "equipement" },
+"KXP-9035-ESN": { nom: "Gant.png", type: "equipement" },
+"JRD-6184-YKF": { nom: "Ballon.png", type: "equipement" },
 
 
 
