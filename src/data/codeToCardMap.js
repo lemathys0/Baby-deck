@@ -44,8 +44,6 @@ const codeToCardMap = {
 
   "NVC-3487-YUI": { nom: "Maxence.png", type: "joueur" },
 
-  "TYU-4839-MKL": { nom: "Marceau.png", type: "joueur" },
-
 
 
 
