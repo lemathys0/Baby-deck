@@ -52,10 +52,10 @@ const codeToCardMap = {
 // Equipement : 
 
   
-
-
-"QZT-9173-LNB": { nom: "Double-passe.png", type: "defi" },
-
+"BQL-7621-MZX": { nom: "Chaussure-magnetique.png", type: "equipement" },
+"NVA-0387-CTW": { nom: "Telescope.png", type: "defi" },
+"KXP-9035-ESN": { nom: "Gant.png", type: "defi" },
+"JRD-6184-YKF": { nom: "Ballon.png", type: "defi" },
 
 
 
@@ -63,9 +63,13 @@ const codeToCardMap = {
 
 // Defi  : 
 
-
-
-
+"QZT-9173-LNB": { nom: "Double-passe.png", type: "defi" },
+"VPL-8362-JKQ": { nom: "Tir-sans-rebond.png", type: "defi" },
+"TRX-2940-MNB": { nom: "Defense-total.png", type: "defi" },
+"YHD-7105-CEW": { nom: "Tir-precis.png", type: "defi" },
+"GMA-5631-XTZ": { nom: "Changement-main.png", type: "defi" },
+"KZN-4087-RYU": { nom: "Score-eclair.png", type: "defi" },
+"WQC-1759-ABL": { nom: "Tir-aveugle.png", type: "defi" },
 
 
   // ajoute d'autres codes ici
