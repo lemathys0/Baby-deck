@@ -10,7 +10,7 @@ export default function BabyDeckContent({ user }) {
 
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-  const [cards, setCards] = useState([]);
+  const [cards, setCards] = useState([]); // stocke les codes des cartes
 
   const [categorizedCards, setCategorizedCards] = useState({
     joueur: [],
@@ -25,7 +25,7 @@ export default function BabyDeckContent({ user }) {
 
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        const userCards = docSnap.data().cards || [];
+        const userCards = docSnap.data().cards || []; // ce sont des codes ici
         setCards(userCards);
 
         const categorized = {
@@ -34,31 +34,20 @@ export default function BabyDeckContent({ user }) {
           defi: [],
         };
 
-        userCards.forEach((cardName) => {
-          const entry = Object.entries(codeToCardMap).find(([key, val]) => {
-            if (typeof val === "object") return val.nom === cardName;
-            return val === cardName;
-          });
+        userCards.forEach((cardCode) => {
+          const cardData = codeToCardMap[cardCode];
 
-          if (entry) {
-            const [, data] = entry;
+          if (cardData) {
+            const type = cardData.type.toLowerCase();
 
-            if (typeof data === "object" && data.type) {
-              const type = data.type.toLowerCase().trim();
-              console.log(`Carte trouvée: ${cardName}, type: ${type}`);
-              // Vérifier que type est bien une catégorie valide
-              if (["joueur", "equipement", "defi"].includes(type)) {
-                categorized[type].push(cardName);
-              } else {
-                categorized.defi.push(cardName);
-                console.warn(`Type inconnu "${type}" pour la carte ${cardName}, classée en défi par défaut.`);
-              }
+            if (categorized[type]) {
+              categorized[type].push(cardCode);
             } else {
-              categorized.defi.push(cardName);
-              console.log(`Carte sans type, classée en défi: ${cardName}`);
+              categorized.defi.push(cardCode);
+              console.warn(`Type inconnu "${type}" pour la carte ${cardCode}, classée en défi par défaut.`);
             }
           } else {
-            console.warn(`Carte non trouvée dans codeToCardMap: ${cardName}`);
+            console.warn(`Code de carte non trouvé dans codeToCardMap : ${cardCode}`);
           }
         });
 
@@ -91,21 +80,19 @@ export default function BabyDeckContent({ user }) {
       return;
     }
 
-    const cardName = typeof cardData === "string" ? cardData : cardData.nom;
-
-    if (cards.includes(cardName)) {
+    if (cards.includes(newCardCode)) {
       setMessage("✅ Carte déjà débloquée !");
       return;
     }
 
     try {
       const docRef = doc(db, "users", user.uid);
-      await updateDoc(docRef, { cards: arrayUnion(cardName) });
+      await updateDoc(docRef, { cards: arrayUnion(newCardCode) });
       setMessage("🎉 Carte débloquée !");
       setCode("");
     } catch (error) {
       try {
-        await setDoc(doc(db, "users", user.uid), { cards: [cardName] });
+        await setDoc(doc(db, "users", user.uid), { cards: [newCardCode] });
         setMessage("🎉 Carte débloquée !");
         setCode("");
       } catch (e) {
@@ -155,7 +142,8 @@ export default function BabyDeckContent({ user }) {
         <li>📦 Total : {cards.length}</li>
       </ul>
 
-      <CardGrid categorizedCards={categorizedCards} theme={theme} />
+      {/* Pour afficher la grille, on peut donner les codes, à CardGrid de récupérer les noms */}
+      <CardGrid categorizedCards={categorizedCards} theme={theme} codeToCardMap={codeToCardMap} />
     </div>
   );
 }

@@ -1,33 +1,29 @@
 import React from "react";
 
-export default function CardGrid({ categorizedCards, theme }) {
-  const renderCards = (cards) =>
-    cards.map((cardName) => (
-      <div
-        key={cardName}
-        style={{
-          border: `1px solid ${theme === "dark" ? "#555" : "#ccc"}`,
-          borderRadius: "8px",
-          padding: "10px",
-          width: "120px",
-          textAlign: "center",
-          backgroundColor: theme === "dark" ? "#333" : "white",
-          color: theme === "dark" ? "#eee" : "#333",
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <img
-          src={`/images/cards/${cardName}`} // 👈 CORRIGÉ
-          alt={cardName}
-          style={{ width: "100%", height: "auto", borderRadius: "4px" }}
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "/images/cards/default.png";
-          }}
-        />
-        <p>{cardName}</p>
-      </div>
-    ));
+export default function CardGrid({ categorizedCards, theme, codeToCardMap }) {
+  return (
+    <div>
+      {Object.entries(categorizedCards).map(([category, codes]) => (
+        <div key={category}>
+          <h5>{category}</h5>
+          <div style={{ display: "flex", flexWrap: "wrap" }}>
+            {codes.map(code => {
+              const card = codeToCardMap[code];
+              return (
+                <img
+                  key={code}
+                  src={`/images/${card.nom}`} // chemin vers l'image
+                  alt={card.nom}
+                  style={{ width: "80px", margin: "5px" }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
   return (
     <div style={{ marginTop: 20 }}>
