@@ -19,44 +19,63 @@ export default function BabyDeckContent({ user }) {
   });
 
   useEffect(() => {
-    if (!user || !user.uid) return;
+  if (!user || !user.uid) return;
 
-    const docRef = doc(db, "users", user.uid);
+  const docRef = doc(db, "users", user.uid);
 
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const userCards = docSnap.data().cards || []; // ce sont des codes ici
-        setCards(userCards);
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const userCards = docSnap.data().cards || [];
+      setCards(userCards);
 
-        const categorized = {
-          joueur: [],
-          equipement: [],
-          defi: [],
-        };
+      const categorized = {
+        joueur: [],
+        equipement: [],
+        defi: [],
+      };
 
-        userCards.forEach((cardCode) => {
-          const cardData = codeToCardMap[cardCode];
-
-          if (cardData) {
-            const type = cardData.type.toLowerCase();
-
-            if (categorized[type]) {
-              categorized[type].push(cardCode);
-            } else {
-              categorized.defi.push(cardCode);
-              console.warn(`Type inconnu "${type}" pour la carte ${cardCode}, classée en défi par défaut.`);
-            }
-          } else {
-            console.warn(`Code de carte non trouvé dans codeToCardMap : ${cardCode}`);
-          }
+      userCards.forEach((cardName) => {
+        // Cherche toutes les correspondances exactes dans codeToCardMap
+        const matchedEntries = Object.entries(codeToCardMap).filter(([key, val]) => {
+          if (typeof val === "object") return val.nom === cardName;
+          return val === cardName;
         });
 
-        setCategorizedCards(categorized);
-      }
-    });
+        if (matchedEntries.length === 0) {
+          console.warn(`⚠️ Carte non trouvée dans codeToCardMap: "${cardName}"`);
+          return;
+        }
 
-    return () => unsubscribe();
-  }, [user]);
+        if (matchedEntries.length > 1) {
+          console.warn(`⚠️ Plusieurs correspondances trouvées pour "${cardName}":`, matchedEntries);
+        }
+
+        // On prend la première correspondance
+        const [, data] = matchedEntries[0];
+
+        if (typeof data === "object" && data.type) {
+          const type = data.type.toLowerCase();
+
+          if (["joueur", "equipement", "defi"].includes(type)) {
+            categorized[type].push(cardName);
+            console.log(`✅ Carte trouvée: "${cardName}", type: "${type}"`);
+          } else {
+            categorized.defi.push(cardName);
+            console.warn(`❗ Type inconnu "${type}" pour la carte "${cardName}", classée en défi par défaut.`);
+          }
+        } else {
+          categorized.defi.push(cardName);
+          console.warn(`❗ Carte sans type défini, classée en défi par défaut: "${cardName}"`);
+        }
+      });
+
+      setCategorizedCards(categorized);
+    }
+  });
+
+  return () => unsubscribe();
+}, [user]);
+
 
   const codePattern = /^[A-Z]{3}-\d{4}-[A-Z]{3}$/;
 
