@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   getAuth,
@@ -15,18 +15,18 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
   const [avatarError, setAvatarError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Pour changer le mdp
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [changePasswordMode, setChangePasswordMode] = useState(false);
 
-  // Pour modifier le profil
   const [editProfileMode, setEditProfileMode] = useState(false);
   const [tempPseudo, setTempPseudo] = useState("");
   const [tempAvatar, setTempAvatar] = useState("");
 
   const isDark = theme === "dark";
   const auth = getAuth();
+
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -37,9 +37,9 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
           const data = docSnap.data();
           setPseudo(data.pseudo || "");
           setAvatar(data.avatar || "");
-          setAvatarError(false);
           setTempPseudo(data.pseudo || "");
           setTempAvatar(data.avatar || "");
+          setAvatarError(false);
         }
       } catch (e) {
         console.error(e);
@@ -48,88 +48,28 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
     if (user?.uid) fetchUserData();
   }, [user]);
 
-  const containerStyle = {
-    position: "relative",
-    textAlign: "right",
-  };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
 
-  const buttonStyle = {
-    background: "transparent",
-    border: "none",
-    cursor: "pointer",
-    fontSize: 24,
-    color: isDark ? "#fff" : "#222",
-    userSelect: "none",
-  };
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
 
-  const menuStyle = {
-    position: "absolute",
-    top: "36px",
-    right: 0,
-    backgroundColor: isDark ? "#222" : "#fff",
-    color: isDark ? "#eee" : "#222",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
-    borderRadius: 8,
-    padding: 15,
-    minWidth: 280,
-    zIndex: 2000,
-  };
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
 
-  const pseudoStyle = {
-    fontWeight: "600",
-    fontSize: "1.1rem",
-    color: isDark ? "#fff" : "#222",
-    backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-    padding: "6px 12px",
-    borderRadius: 8,
-    userSelect: "none",
-    marginBottom: 10,
-    textAlign: "center",
-  };
-
-  const avatarStyle = {
-    width: 80,
-    height: 80,
-    borderRadius: "50%",
-    marginBottom: 10,
-    objectFit: "cover",
-    border: isDark ? "2px solid #fff" : "2px solid #222",
-    backgroundColor: "#ccc",
-    display: "block",
-    marginLeft: "auto",
-    marginRight: "auto",
-  };
-
-  const btnStyle = {
-    display: "block",
-    width: "100%",
-    padding: "8px 12px",
-    marginTop: 10,
-    backgroundColor: isDark ? "#444" : "#eee",
-    border: "none",
-    borderRadius: 5,
-    cursor: "pointer",
-    color: isDark ? "#eee" : "#222",
-  };
-
-  const logoutBtnStyle = {
-    ...btnStyle,
-    backgroundColor: "#f44336",
-    color: "white",
-    marginTop: 10,
-  };
-
-  // Petite vérification / correction pour les URLs Google Drive
-  // Transforme les liens Google Drive en liens directs pour afficher l’image
-  // Ex: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-  // => https://drive.google.com/uc?export=view&id=FILE_ID
   const getValidAvatarUrl = (url) => {
     if (!url) return "";
-    const googleDriveMatch = url.match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/);
-    if (googleDriveMatch) {
-      return `https://drive.google.com/uc?export=view&id=${googleDriveMatch[1]}`;
+    const match = url.match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/);
+    if (match) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
     }
-    // sinon retourne l'URL telle quelle
     return url;
   };
 
@@ -159,77 +99,116 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
       const credential = EmailAuthProvider.credential(user.email, oldPassword);
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, newPassword);
-      alert("Mot de passe changé avec succès !");
+      alert("Mot de passe changé !");
       setOldPassword("");
       setNewPassword("");
       setChangePasswordMode(false);
     } catch (e) {
       if (e.code === "auth/requires-recent-login") {
-        alert("Merci de vous reconnecter pour changer votre mot de passe.");
+        alert("Reconnecte-toi pour changer ton mot de passe.");
         await signOut(auth);
         if (onLogout) onLogout();
       } else if (e.code === "auth/wrong-password") {
         alert("Mot de passe actuel incorrect.");
       } else {
-        alert("Erreur lors du changement de mot de passe : " + e.message);
+        alert("Erreur : " + e.message);
       }
     }
   };
 
   return (
-    <div style={containerStyle}>
+    <div style={{ position: "relative", textAlign: "right" }}>
       <button
         onClick={() => setMenuOpen((open) => !open)}
-        style={buttonStyle}
+        style={{
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 24,
+          color: isDark ? "#fff" : "#222",
+        }}
         aria-label="Ouvrir le menu profil"
       >
         &#8942;
       </button>
 
       {menuOpen && (
-        <div style={menuStyle}>
+        <div
+          ref={menuRef}
+          style={{
+            position: "absolute",
+            top: "36px",
+            right: 0,
+            backgroundColor: isDark ? "#222" : "#fff",
+            color: isDark ? "#eee" : "#222",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+            borderRadius: 8,
+            padding: 15,
+            minWidth: 280,
+            zIndex: 2000,
+          }}
+        >
           {!editProfileMode && !changePasswordMode && (
             <>
               {avatar && !avatarError ? (
                 <img
                   src={getValidAvatarUrl(avatar)}
-                  alt="Avatar utilisateur"
-                  style={avatarStyle}
+                  alt="Avatar"
                   onError={() => setAvatarError(true)}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: "50%",
+                    marginBottom: 10,
+                    objectFit: "cover",
+                    border: isDark ? "2px solid #fff" : "2px solid #222",
+                    display: "block",
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                  }}
                 />
               ) : (
                 <div
                   style={{
-                    ...avatarStyle,
+                    width: 80,
+                    height: 80,
+                    borderRadius: "50%",
+                    backgroundColor: "#ccc",
+                    marginBottom: 10,
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    color: "#666",
                     fontSize: 14,
+                    color: "#666",
+                    margin: "auto",
                   }}
                 >
                   Pas d'avatar
                 </div>
               )}
 
-              <div style={pseudoStyle}>{pseudo || "Aucun pseudo défini"}</div>
-
-              <button
-                style={btnStyle}
-                onClick={() => setEditProfileMode(true)}
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: "1.1rem",
+                  backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#eee",
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  textAlign: "center",
+                  marginBottom: 10,
+                }}
               >
+                {pseudo || "Aucun pseudo défini"}
+              </div>
+
+              <button style={btnStyle()} onClick={() => setEditProfileMode(true)}>
                 Modifier profil
               </button>
-
-              <button
-                style={btnStyle}
-                onClick={() => setChangePasswordMode(true)}
-              >
+              <button style={btnStyle()} onClick={() => setChangePasswordMode(true)}>
                 Changer mot de passe
               </button>
-
               <button
-                style={logoutBtnStyle}
+                style={{ ...btnStyle(), backgroundColor: "#f44336", color: "#fff" }}
                 onClick={() => {
                   signOut(auth);
                   if (onLogout) onLogout();
@@ -249,37 +228,61 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                   type="text"
                   value={tempPseudo}
                   onChange={(e) => setTempPseudo(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: 6,
-                    margin: "6px 0",
-                    borderRadius: 4,
-                    border: "1px solid #ccc",
-                  }}
+                  style={inputStyle()}
                 />
               </label>
 
-              <label>
-                URL avatar :
-                <input
-                  type="text"
-                  value={tempAvatar}
-                  onChange={(e) => setTempAvatar(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: 6,
-                    margin: "6px 0",
-                    borderRadius: 4,
-                    border: "1px solid #ccc",
-                  }}
-                />
-              </label>
+              <div style={{ marginBottom: 10 }}>
+                <label>
+                  Choisis un avatar :
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginTop: 6,
+                    }}
+                  >
+                    {[1, 2, 3, 4].map((n) => {
+                      const avatarPath = `/images/avatars/avatar${n}.png`;
+                      return (
+                        <img
+                          key={n}
+                          src={avatarPath}
+                          alt={`Avatar ${n}`}
+                          onClick={() => setTempAvatar(avatarPath)}
+                          style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: "50%",
+                            border:
+                              tempAvatar === avatarPath
+                                ? "3px solid #4CAF50"
+                                : "2px solid #ccc",
+                            cursor: "pointer",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </label>
 
-              <button style={btnStyle} onClick={saveProfile}>
+                <label>
+                  Ou URL personnalisée :
+                  <input
+                    type="text"
+                    value={tempAvatar}
+                    onChange={(e) => setTempAvatar(e.target.value)}
+                    style={inputStyle()}
+                  />
+                </label>
+              </div>
+
+              <button style={btnStyle()} onClick={saveProfile}>
                 Sauvegarder
               </button>
               <button
-                style={{ ...btnStyle, backgroundColor: "#888", marginTop: 6 }}
+                style={{ ...btnStyle(), backgroundColor: "#888", marginTop: 6 }}
                 onClick={() => setEditProfileMode(false)}
               >
                 Annuler
@@ -295,13 +298,7 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                   type="password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: 6,
-                    margin: "6px 0",
-                    borderRadius: 4,
-                    border: "1px solid #ccc",
-                  }}
+                  style={inputStyle()}
                 />
               </label>
 
@@ -311,30 +308,46 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: 6,
-                    margin: "6px 0",
-                    borderRadius: 4,
-                    border: "1px solid #ccc",
-                  }}
+                  style={inputStyle()}
                 />
-              </label>          <button style={btnStyle} onClick={changePassword}>
-            Modifier le mot de passe
-          </button>
-          <button
-            style={{ ...btnStyle, backgroundColor: "#888", marginTop: 6 }}
-            onClick={() => setChangePasswordMode(false)}
-          >
-            Annuler
-          </button>
-        </>
+              </label>
+
+              <button style={btnStyle()} onClick={changePassword}>
+                Modifier le mot de passe
+              </button>
+              <button
+                style={{ ...btnStyle(), backgroundColor: "#888", marginTop: 6 }}
+                onClick={() => setChangePasswordMode(false)}
+              >
+                Annuler
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
-  )}
-</div>);
+  );
 };
 
+const btnStyle = () => ({
+  display: "block",
+  width: "100%",
+  padding: "8px 12px",
+  marginTop: 10,
+  backgroundColor: "#eee",
+  border: "none",
+  borderRadius: 5,
+  cursor: "pointer",
+  color: "#222",
+});
+
+const inputStyle = () => ({
+  width: "100%",
+  padding: 6,
+  marginTop: 6,
+  marginBottom: 6,
+  borderRadius: 4,
+  border: "1px solid #ccc",
+});
+
 export default ProfileMenu;
-
-
