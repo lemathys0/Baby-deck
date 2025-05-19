@@ -6,7 +6,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 
 import BabyDeckContent from "./BabyDeckContent";
 import ProfileMenu from "./ProfileMenu";
@@ -16,38 +16,11 @@ const Auth = ({ theme = "light" }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const [allUsersCards, setAllUsersCards] = useState([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return unsubscribe;
   }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setAllUsersCards([]);
-      return;
-    }
-    const fetchUsersCards = async () => {
-      try {
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-        const data = snapshot.docs.map((doc) => {
-          const d = doc.data();
-          return {
-            uid: doc.id,
-            pseudo: d.pseudo || "(Pas de pseudo)",
-            cards: d.cards || [],
-            totalCards: d.totalCards || 32,
-          };
-        });
-        setAllUsersCards(data);
-      } catch (e) {
-        console.error("Erreur récupération users:", e);
-      }
-    };
-    fetchUsersCards();
-  }, [user]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -95,17 +68,6 @@ const Auth = ({ theme = "light" }) => {
         <ProfileMenu user={user} theme={theme} onLogout={handleLogout} />
 
         <BabyDeckContent user={user} />
-
-        <h3 style={{ marginTop: 30, color: theme === "dark" ? "#eee" : "#111" }}>
-          📋 Cartes débloquées par les utilisateurs :
-        </h3>
-        <ul>
-          {allUsersCards.map((u) => (
-            <li key={u.uid} style={{ marginBottom: 6 }}>
-              <strong>{u.pseudo}</strong> - {u.cards.length} / {u.totalCards} cartes
-            </li>
-          ))}
-        </ul>
       </div>
     );
   }
