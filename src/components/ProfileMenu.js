@@ -244,7 +244,7 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                     }}
                   >
                     {[1, 2, 3, 4].map((n) => {
-                      const avatarPath = `/images/Avatars/avatar${n}.png`;
+                      const avatarPath = `/images/Avatars/avatar${n}.png`; // 🔁 Chemin corrigé
                       return (
                         <img
                           key={n}
