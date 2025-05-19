@@ -10,7 +10,7 @@ export default function BabyDeckContent({ user }) {
 
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-  const [cards, setCards] = useState([]); // stocke les codes des cartes
+  const [cards, setCards] = useState([]);
 
   const [categorizedCards, setCategorizedCards] = useState({
     joueur: [],
@@ -56,7 +56,8 @@ export default function BabyDeckContent({ user }) {
     return () => unsubscribe();
   }, [user]);
 
-  const codePattern = /^[A-Z]{3}-\d{4}-[A-Z]{3}$/;
+  // Nouveau pattern : 1 lettre majuscule + 3 chiffres
+  const codePattern = /^[A-Z]\d{3}$/;
 
   const handleCodeSubmit = async () => {
     if (!code) {
@@ -67,7 +68,7 @@ export default function BabyDeckContent({ user }) {
     const newCardCode = code.toUpperCase();
 
     if (!codePattern.test(newCardCode)) {
-      setMessage("❌ Format de code invalide. Exemple : ABC-1234-XYZ");
+      setMessage("❌ Format de code invalide. Exemple : X123");
       return;
     }
 
@@ -121,7 +122,7 @@ export default function BabyDeckContent({ user }) {
 
       <input
         type="text"
-        placeholder="Entrez un code"
+        placeholder="Entrez un code (ex: X123)"
         value={code}
         onChange={(e) => setCode(e.target.value)}
         style={{ padding: "8px", marginRight: "10px", width: "60%" }}
