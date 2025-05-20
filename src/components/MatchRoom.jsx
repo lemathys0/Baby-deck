@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { db } from "../firebase"; // Assure-toi que db est bien exporté de ton fichier firebase.js
+import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
 const ItemTypes = {
   CARD: "card",
 };
 
-function DraggableCard({ card, onDropCard }) {
+function DraggableCard({ card }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ItemTypes.CARD,
     item: { id: card.id },
@@ -69,8 +71,7 @@ function DropZone({ position, card, onDrop }) {
   );
 }
 
-export default function MatchRoom({ user }) {
-  // Exemple : cartes débloquées par l'utilisateur
+export default function MatchRoom({ user, matchId }) {
   const unlockedCards = [
     { id: "c1", name: "Bébé Dragon" },
     { id: "c2", name: "Petit Ninja" },
@@ -78,32 +79,96 @@ export default function MatchRoom({ user }) {
     { id: "c4", name: "Petit Guerrier" },
   ];
 
-  // États des cartes sélectionnées (attaque / défense)
+  // State local des cartes sélectionnées
   const [selectedCards, setSelectedCards] = useState({
     attack: null,
     defense: null,
   });
 
-  // Fonction appelée quand on drop une carte sur une zone
+  // État pour indiquer si le match est prêt (les 2 joueurs ont choisi)
+  const [matchReady, setMatchReady] = useState(false);
+
+  // Charger les données du match en temps réel depuis Firestore
+  useEffect(() => {
+    if (!matchId) return;
+
+    const matchDocRef = doc(db, "matches", matchId);
+    const unsubscribe = onSnapshot(matchDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        // On met à jour nos choix si ce n'est pas nous qui a changé
+        // Ici on ne fait pas la distinction joueur1/joueur2 pour simplifier, à toi d’adapter en fonction de ta logique
+        if (data.players && data.players[user.uid]) {
+          setSelectedCards(data.players[user.uid].cards);
+        }
+
+        // Vérifier si tous les joueurs ont choisi leurs cartes
+        if (data.players) {
+          const allChosen = Object.values(data.players).every(
+            (p) => p.cards.attack && p.cards.defense
+          );
+          setMatchReady(allChosen);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [matchId, user.uid]);
+
+  // Enregistrer dans Firestore à chaque changement de sélection locale
+  useEffect(() => {
+    if (!matchId) return;
+
+    // On prépare l'objet à enregistrer
+    const matchDocRef = doc(db, "matches", matchId);
+
+    const saveData = async () => {
+      // Lecture du doc pour merger les données des joueurs
+      const docSnap = await getDoc(matchDocRef);
+      let playersData = {};
+      if (docSnap.exists()) {
+        playersData = docSnap.data().players || {};
+      }
+
+      // Met à jour seulement notre sélection
+      playersData[user.uid] = {
+        userId: user.uid,
+        email: user.email,
+        cards: selectedCards,
+      };
+
+      await setDoc(
+        matchDocRef,
+        {
+          players: playersData,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+    };
+
+    // Ne sauvegarde que si on a choisi les 2 cartes
+    if (selectedCards.attack && selectedCards.defense) {
+      saveData();
+    }
+  }, [selectedCards, matchId, user.uid, user.email]);
+
   const handleDrop = (cardId, position) => {
-    // Trouver la carte à partir de son id
     const card = unlockedCards.find((c) => c.id === cardId);
     if (!card) return;
 
-    // On autorise une seule carte par position
     setSelectedCards((prev) => {
-      // Si la carte est déjà sélectionnée à l’autre position, on la retire de là-bas
       let newSelected = { ...prev };
+      // Retirer la carte si elle est déjà sélectionnée à l’autre position
       if (prev.attack?.id === cardId) newSelected.attack = null;
       if (prev.defense?.id === cardId) newSelected.defense = null;
 
-      // On place la carte sur la nouvelle position
       newSelected[position] = card;
       return newSelected;
     });
   };
 
-  // Carte disponibles = toutes cartes - celles déjà sélectionnées
   const availableCards = unlockedCards.filter(
     (card) =>
       card.id !== selectedCards.attack?.id && card.id !== selectedCards.defense?.id
@@ -113,23 +178,9 @@ export default function MatchRoom({ user }) {
     <DndProvider backend={HTML5Backend}>
       <h2>Choisissez vos joueurs</h2>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 20,
-        }}
-      >
-        <DropZone
-          position="defense"
-          card={selectedCards.defense}
-          onDrop={handleDrop}
-        />
-        <DropZone
-          position="attack"
-          card={selectedCards.attack}
-          onDrop={handleDrop}
-        />
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <DropZone position="defense" card={selectedCards.defense} onDrop={handleDrop} />
+        <DropZone position="attack" card={selectedCards.attack} onDrop={handleDrop} />
       </div>
 
       <h3>Vos cartes débloquées</h3>
@@ -151,12 +202,17 @@ export default function MatchRoom({ user }) {
 
       <div style={{ marginTop: 20 }}>
         <button
-          disabled={!selectedCards.attack || !selectedCards.defense}
-          onClick={() => alert(`Match lancé avec:\nAttaque: ${selectedCards.attack.name}\nDéfense: ${selectedCards.defense.name}`)}
+          disabled={!selectedCards.attack || !selectedCards.defense || !matchReady}
+          onClick={() => alert("Match lancé !")}
           style={{ padding: "10px 20px", fontWeight: "bold" }}
         >
           Lancer le match
         </button>
+        {!matchReady && (
+          <p style={{ marginTop: 10, color: "red" }}>
+            En attente que l’autre joueur choisisse ses cartes...
+          </p>
+        )}
       </div>
     </DndProvider>
   );
