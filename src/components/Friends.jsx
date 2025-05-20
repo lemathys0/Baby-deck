@@ -5,21 +5,23 @@ import {
   where,
   getDocs,
   doc,
+  getDoc,
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import useFriends from "../hooks/useFriends"; // Ton hook qui récupère TOUS les amis
+import useFriends from "../hooks/useFriends"; // Le hook qui récupère tous les amis
 
 export default function Friends({ user }) {
   const { friends, loading } = useFriends(user);
+
   const [emailToAdd, setEmailToAdd] = useState("");
   const [status, setStatus] = useState("");
 
   const handleAddFriend = async () => {
     setStatus("");
 
-    if (!emailToAdd.trim()) {
+    if (!emailToAdd) {
       setStatus("Veuillez saisir un email.");
       return;
     }
@@ -30,7 +32,7 @@ export default function Friends({ user }) {
     }
 
     try {
-      // Cherche l'utilisateur par email
+      // Vérifier que l'utilisateur existe
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", emailToAdd));
       const querySnapshot = await getDocs(q);
@@ -41,23 +43,22 @@ export default function Friends({ user }) {
       }
 
       const friendDoc = querySnapshot.docs[0];
-      const friendData = friendDoc.data();
-      const friendUID = friendDoc.id;
+      const friendUid = friendDoc.id;
 
-      // Vérifie si déjà ami
+      // Vérifie si l'utilisateur est déjà ami
       if (friends.some((f) => f.email === emailToAdd)) {
         setStatus("Cet utilisateur est déjà votre ami.");
         return;
       }
 
-      // Ajoute l'email dans ta liste d'amis
-      const myDocRef = doc(db, "users", user.uid);
-      await updateDoc(myDocRef, {
+      // Ajoute l'ami dans les deux sens
+      const userDocRef = doc(db, "users", user.uid);
+      const friendDocRef = doc(db, "users", friendUid);
+
+      await updateDoc(userDocRef, {
         friends: arrayUnion(emailToAdd),
       });
 
-      // Ajoute ton email dans la liste de l'autre utilisateur
-      const friendDocRef = doc(db, "users", friendUID);
       await updateDoc(friendDocRef, {
         friends: arrayUnion(user.email),
       });
@@ -88,7 +89,6 @@ export default function Friends({ user }) {
         </ul>
       )}
 
-      {/* Ajouter un ami par email */}
       <div style={{ marginTop: 30 }}>
         <h3>Ajouter un ami par email :</h3>
         <input
