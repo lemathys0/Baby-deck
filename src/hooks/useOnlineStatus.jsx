@@ -19,6 +19,7 @@ export default function useOnlineFriends(user) {
       try {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
+
         if (!userDocSnap.exists()) {
           console.log("User doc n'existe pas");
           setOnlineFriends([]);
@@ -38,6 +39,7 @@ export default function useOnlineFriends(user) {
           return;
         }
 
+        // Firestore limite 10 éléments max dans "in"
         const chunkedFriends = [];
         for (let i = 0; i < friends.length; i += 10) {
           chunkedFriends.push(friends.slice(i, i + 10));
@@ -68,7 +70,6 @@ export default function useOnlineFriends(user) {
         }
 
         console.log("Amis en ligne récupérés :", online);
-
         setOnlineFriends(online);
       } catch (error) {
         console.error("Erreur fetch online friends :", error);
