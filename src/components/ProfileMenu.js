@@ -195,6 +195,9 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                 <button style={btnStyle()} onClick={() => setChangePasswordMode(true)}>
                   🔐 Changer le mot de passe
                 </button>
+                <button style={btnStyle()} onClick={() => window.location.href = "/gamehub"}>
+                  🎮 Game Hub
+                </button>
                 <button
                   style={{
                     ...btnStyle(),

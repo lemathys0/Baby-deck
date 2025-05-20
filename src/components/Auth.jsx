@@ -11,16 +11,21 @@ import { doc, setDoc } from "firebase/firestore";
 import BabyDeckContent from "./BabyDeckContent";
 import ProfileMenu from "./ProfileMenu";
 
-const Auth = ({ theme = "light" }) => {
+const Auth = ({ theme = "light", onLogin }) => {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      if (onLogin) {
+        onLogin(firebaseUser);
+      }
+    });
     return unsubscribe;
-  }, []);
+  }, [onLogin]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -42,9 +47,17 @@ const Auth = ({ theme = "light" }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
-      await setDoc(doc(db, "users", uid), { cards: [], pseudo: "", avatar: "", totalCards: 32 });
+      await setDoc(doc(db, "users", uid), {
+        cards: [],
+        pseudo: "",
+        avatar: "",
+        totalCards: 32,
+        email: email.toLowerCase(),  // <-- Ajout de l'email ici
+      });
       alert("Inscription réussie !");
       setIsRegistering(false);
+      setEmail("");
+      setPassword("");
     } catch (e) {
       alert(e.message);
     }
@@ -79,7 +92,7 @@ const Auth = ({ theme = "light" }) => {
         type="email"
         placeholder="Email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => setEmail(e.target.value.toLowerCase())}
         style={{ marginBottom: 10, width: "100%", padding: "8px" }}
       />
       <input

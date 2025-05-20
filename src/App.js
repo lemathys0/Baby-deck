@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Auth from "./components/Auth";
 import ProfileMenu from "./components/ProfileMenu";
+import GameHub from "./components/GameHub";
+
+import useOnlineStatus from "./hooks/useOnlineStatus"; // adapte le chemin si besoin
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
@@ -26,12 +29,21 @@ const ThemeToggleButton = () => {
 
 const AppContent = () => {
   const { theme } = useTheme();
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("auth");
 
-  // Ici, on va gérer l'auth dans Auth, donc on n'a pas besoin de ce fakeUser dans AppContent
-  // Le mieux est de gérer la déconnexion depuis Auth et passer la fonction à ProfileMenu.
+  // Appelle ton hook ici avec user (il ne fait rien si user est null)
+  useOnlineStatus(user);
 
-  // Pour ça, on peut remonter l'état user et la fonction logout depuis Auth via un contexte ou prop drilling,
-  // mais pour simplifier, on va juste enlever le bouton Logout en haut à droite (sinon doublon)
+  const handleLogin = (loggedUser) => {
+    setUser(loggedUser);
+    setPage("gamehub");
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setPage("auth");
+  };
 
   return (
     <div
@@ -43,7 +55,6 @@ const AppContent = () => {
         transition: "background-color 0.3s, color 0.3s",
       }}
     >
-      {/* TOP RIGHT TOOLBAR */}
       <div
         style={{
           position: "fixed",
@@ -56,13 +67,11 @@ const AppContent = () => {
         }}
       >
         <ThemeToggleButton />
-        {/* 
-          On supprime le bouton Logout ici pour éviter doublon, 
-          puisque ProfileMenu le gère avec un vrai utilisateur connecté 
-        */}
+        {user && <ProfileMenu user={user} onLogout={handleLogout} theme={theme} />}
       </div>
 
-      <Auth theme={theme} />
+      {!user && <Auth theme={theme} onLogin={handleLogin} />}
+      {user && page === "gamehub" && <GameHub user={user} />}
     </div>
   );
 };
