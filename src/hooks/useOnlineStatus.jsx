@@ -8,6 +8,7 @@ export default function useOnlineFriends(user) {
 
   useEffect(() => {
     if (!user?.uid) {
+      console.log("Pas d'utilisateur ou UID invalide");
       setOnlineFriends([]);
       setLoading(false);
       return;
@@ -16,25 +17,27 @@ export default function useOnlineFriends(user) {
     const fetchOnlineFriends = async () => {
       setLoading(true);
       try {
-        // Récupérer le doc user
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
+          console.log("User doc n'existe pas");
           setOnlineFriends([]);
           setLoading(false);
           return;
         }
 
         const userData = userDocSnap.data();
-        const friends = userData.friends || []; // Liste d'emails
+        console.log("userData.friends:", userData.friends);
+
+        const friends = userData.friends || [];
 
         if (friends.length === 0) {
+          console.log("Aucun ami dans la liste friends");
           setOnlineFriends([]);
           setLoading(false);
           return;
         }
 
-        // Firestore limite "in" à 10 éléments max, donc on découpe si besoin
         const chunkedFriends = [];
         for (let i = 0; i < friends.length; i += 10) {
           chunkedFriends.push(friends.slice(i, i + 10));
@@ -42,14 +45,18 @@ export default function useOnlineFriends(user) {
 
         const online = [];
 
-        // Pour chaque chunk d'emails, faire une requête "where in"
         for (const chunk of chunkedFriends) {
+          console.log("Requête Firestore avec emails:", chunk);
+
           const q = query(
             collection(db, "users"),
             where("email", "in", chunk),
             where("isOnline", "==", true)
           );
+
           const querySnapshot = await getDocs(q);
+          console.log("Nombre d'amis en ligne trouvés dans ce chunk :", querySnapshot.size);
+
           querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
             online.push({
@@ -59,6 +66,8 @@ export default function useOnlineFriends(user) {
             });
           });
         }
+
+        console.log("Amis en ligne récupérés :", online);
 
         setOnlineFriends(online);
       } catch (error) {
