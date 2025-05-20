@@ -26,7 +26,7 @@ export default function useOnlineFriends(user) {
         }
 
         const userData = userDocSnap.data();
-        const friends = userData.friends || []; // Liste d'emails ou UIDs
+        const friends = userData.friends || []; // Liste d'emails
 
         if (friends.length === 0) {
           setOnlineFriends([]);
@@ -34,26 +34,31 @@ export default function useOnlineFriends(user) {
           return;
         }
 
-        // Pour simplifier, supposons que friends est une liste d'UIDs.
-        // On va récupérer leurs docs Firestore
-        const friendsRefs = friends.map((friendUid) => doc(db, "users", friendUid));
-        const friendsSnaps = await Promise.all(friendsRefs.map((ref) => getDoc(ref)));
+        // Firestore limite "in" à 10 éléments max, donc on découpe si besoin
+        const chunkedFriends = [];
+        for (let i = 0; i < friends.length; i += 10) {
+          chunkedFriends.push(friends.slice(i, i + 10));
+        }
 
         const online = [];
 
-        friendsSnaps.forEach((snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data.isOnline) {
-              // On stocke ici un objet avec ce que tu veux afficher (email, pseudo...)
-              online.push({
-                uid: snap.id,
-                email: data.email || "Pas d'email",
-                pseudo: data.pseudo || "Inconnu",
-              });
-            }
-          }
-        });
+        // Pour chaque chunk d'emails, faire une requête "where in"
+        for (const chunk of chunkedFriends) {
+          const q = query(
+            collection(db, "users"),
+            where("email", "in", chunk),
+            where("isOnline", "==", true)
+          );
+          const querySnapshot = await getDocs(q);
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            online.push({
+              uid: docSnap.id,
+              email: data.email || "Pas d'email",
+              pseudo: data.pseudo || "Inconnu",
+            });
+          });
+        }
 
         setOnlineFriends(online);
       } catch (error) {
