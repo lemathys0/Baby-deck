@@ -20,13 +20,14 @@ export default function useOnlineFriends(user) {
         const userDocSnap = await getDoc(userDocRef);
 
         if (!userDocSnap.exists()) {
+          console.warn("User doc not found");
           setOnlineFriends([]);
           setLoading(false);
           return;
         }
 
         const userData = userDocSnap.data();
-        const friends = userData.friends || []; // emails
+        const friends = userData.friends || []; // liste d'emails
 
         if (friends.length === 0) {
           setOnlineFriends([]);
@@ -34,32 +35,31 @@ export default function useOnlineFriends(user) {
           return;
         }
 
-        // Firestore autorise 10 éléments max dans une clause "in"
+        // Découpage en chunks de 10 max (limite Firestore)
         const chunks = [];
         for (let i = 0; i < friends.length; i += 10) {
           chunks.push(friends.slice(i, i + 10));
         }
 
-        const online = [];
+        let online = [];
 
         for (const chunk of chunks) {
-          const q = query(
-            collection(db, "users"),
-            where("email", "in", chunk),
-            where("isOnline", "==", true)
-          );
-
+          const q = query(collection(db, "users"), where("email", "in", chunk));
           const snapshot = await getDocs(q);
+
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            online.push({
-              uid: docSnap.id,
-              email: data.email || "Inconnu",
-              pseudo: data.pseudo || "",
-            });
+            if (data.isOnline) {  // filtre côté client
+              online.push({
+                uid: docSnap.id,
+                email: data.email || "Inconnu",
+                pseudo: data.pseudo || "",
+              });
+            }
           });
         }
 
+        console.log("Amis en ligne trouvés :", online);
         setOnlineFriends(online);
       } catch (error) {
         console.error("Erreur chargement amis en ligne :", error);

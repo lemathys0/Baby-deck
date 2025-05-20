@@ -1,5 +1,5 @@
 import React from "react";
-import useOnlineFriends from "../hooks/useOnlineFriends"; // adapte le chemin si besoin
+import useOnlineFriends from "../hooks/useOnlineFriends";
 
 export default function Friends({ user }) {
   const { onlineFriends, loading } = useOnlineFriends(user);
