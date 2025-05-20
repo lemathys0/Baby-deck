@@ -1,69 +1,82 @@
 import React, { useState } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../firebase";
-import useOnlineFriends from "../hooks/useOnlineFriends";
+import useFriends from "../hooks/useFriends"; // Le hook qui récupère tous les amis
 
 export default function Friends({ user }) {
-  const { onlineFriends, loading } = useOnlineFriends(user);
+  const { friends, loading } = useFriends(user);
 
   const [emailToAdd, setEmailToAdd] = useState("");
   const [status, setStatus] = useState("");
 
   const handleAddFriend = async () => {
-    const email = emailToAdd.toLowerCase().trim();
+    setStatus("");
 
-    if (!email) {
+    if (!emailToAdd) {
       setStatus("Veuillez saisir un email.");
       return;
     }
-    if (email === user.email.toLowerCase()) {
-      setStatus("Tu ne peux pas t'ajouter toi-même.");
+
+    if (emailToAdd === user.email) {
+      setStatus("Vous ne pouvez pas vous ajouter vous-même.");
       return;
     }
 
     try {
-      // Vérifier que l'email existe dans la base users
+      // Vérifier que l'email existe bien dans la collection users
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", email));
+      const q = query(usersRef, where("email", "==", emailToAdd));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setStatus("Cet email n'existe pas dans la base.");
+        setStatus("Aucun utilisateur trouvé avec cet email.");
         return;
       }
 
-      // Ajouter l'email dans la liste d'amis de l'utilisateur connecté
+      // Vérifier si l'email est déjà dans la liste des amis
+      if (friends.some((f) => f.email === emailToAdd)) {
+        setStatus("Cet utilisateur est déjà votre ami.");
+        return;
+      }
+
+      // Ajouter l'email dans la liste friends de l'utilisateur
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
-        friends: arrayUnion(email),
+        friends: arrayUnion(emailToAdd),
       });
 
-      setStatus(`L'ami ${email} a été ajouté !`);
+      setStatus("Ami ajouté avec succès !");
       setEmailToAdd("");
     } catch (error) {
       console.error("Erreur lors de l'ajout d'ami :", error);
-      setStatus("Erreur lors de l'ajout d'ami.");
+      setStatus("Erreur lors de l'ajout de l'ami.");
     }
   };
 
   return (
     <div>
-      <h2>Amis en ligne :</h2>
+      <h2>Mes amis :</h2>
 
       {loading ? (
-        <p>Chargement des amis en ligne...</p>
-      ) : onlineFriends.length === 0 ? (
-        <p>Aucun ami en ligne pour le moment.</p>
+        <p>Chargement des amis...</p>
+      ) : friends.length === 0 ? (
+        <p>Tu n’as aucun ami pour le moment.</p>
       ) : (
         <ul>
-          {onlineFriends.map((friend) => (
+          {friends.map((friend) => (
             <li key={friend.uid}>
-              {friend.pseudo} ({friend.email})
+              {friend.pseudo || "Inconnu"} ({friend.email}){" "}
+              {friend.isOnline ? (
+                <span style={{ color: "green" }}>● en ligne</span>
+              ) : (
+                <span style={{ color: "gray" }}>● hors ligne</span>
+              )}
             </li>
           ))}
         </ul>
       )}
 
+      {/* Section pour ajouter un ami */}
       <div style={{ marginTop: 30 }}>
         <h3>Ajouter un ami par email :</h3>
         <input
