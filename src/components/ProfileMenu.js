@@ -25,7 +25,6 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
 
   const isDark = theme === "dark";
   const auth = getAuth();
-
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -58,20 +57,10 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
     if (menuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [menuOpen]);
-
-  const getValidAvatarUrl = (url) => {
-    if (!url) return "";
-    const match = url.match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/);
-    if (match) {
-      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
-    }
-    return url;
-  };
 
   const saveProfile = async () => {
     try {
@@ -80,6 +69,7 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
         pseudo: tempPseudo,
         avatar: tempAvatar,
       });
+
       setPseudo(tempPseudo);
       setAvatar(tempAvatar);
       setAvatarError(false);
@@ -139,91 +129,94 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
             position: "absolute",
             top: "36px",
             right: 0,
-            backgroundColor: isDark ? "#222" : "#fff",
-            color: isDark ? "#eee" : "#222",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
-            borderRadius: 8,
-            padding: 15,
-            minWidth: 280,
+            backgroundColor: isDark ? "#1e1e1e" : "#f9f9f9",
+            color: isDark ? "#f1f1f1" : "#1e1e1e",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            borderRadius: 12,
+            padding: 20,
+            width: 300,
             zIndex: 2000,
+            fontFamily: "system-ui, sans-serif",
           }}
         >
           {!editProfileMode && !changePasswordMode && (
             <>
-              {avatar && !avatarError ? (
-                <img
-                  src={getValidAvatarUrl(avatar)}
-                  alt="Avatar"
-                  onError={() => setAvatarError(true)}
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    marginBottom: 10,
-                    objectFit: "cover",
-                    border: isDark ? "2px solid #fff" : "2px solid #222",
-                    display: "block",
-                    marginLeft: "auto",
-                    marginRight: "auto",
-                  }}
-                />
-              ) : (
+              <div style={{ textAlign: "center", marginBottom: 15 }}>
+                {avatar && !avatarError ? (
+                  <img
+                    src={avatar}
+                    alt="Avatar"
+                    onError={() => setAvatarError(true)}
+                    style={{
+                      width: 90,
+                      height: 90,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: isDark ? "3px solid #fff" : "3px solid #222",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 90,
+                      height: 90,
+                      borderRadius: "50%",
+                      backgroundColor: "#bbb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      color: "#666",
+                      margin: "auto",
+                    }}
+                  >
+                    Pas d'avatar
+                  </div>
+                )}
+
                 <div
                   style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    backgroundColor: "#ccc",
-                    marginBottom: 10,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    fontSize: 14,
-                    color: "#666",
-                    margin: "auto",
+                    fontWeight: "bold",
+                    fontSize: "1.1rem",
+                    marginTop: 10,
+                    padding: 6,
+                    backgroundColor: isDark ? "#2a2a2a" : "#e5e5e5",
+                    borderRadius: 8,
                   }}
                 >
-                  Pas d'avatar
+                  {pseudo || "Aucun pseudo"}
                 </div>
-              )}
-
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: "1.1rem",
-                  backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#eee",
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  textAlign: "center",
-                  marginBottom: 10,
-                }}
-              >
-                {pseudo || "Aucun pseudo défini"}
               </div>
 
-              <button style={btnStyle()} onClick={() => setEditProfileMode(true)}>
-                Modifier profil
-              </button>
-              <button style={btnStyle()} onClick={() => setChangePasswordMode(true)}>
-                Changer mot de passe
-              </button>
-              <button
-                style={{ ...btnStyle(), backgroundColor: "#f44336", color: "#fff" }}
-                onClick={() => {
-                  signOut(auth);
-                  if (onLogout) onLogout();
-                  setMenuOpen(false);
-                }}
-              >
-                Se déconnecter
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <button style={btnStyle()} onClick={() => setEditProfileMode(true)}>
+                  ✏️ Modifier le profil
+                </button>
+                <button style={btnStyle()} onClick={() => setChangePasswordMode(true)}>
+                  🔐 Changer le mot de passe
+                </button>
+                <button
+                  style={{
+                    ...btnStyle(),
+                    backgroundColor: "#e53935",
+                    color: "#fff",
+                  }}
+                  onClick={() => {
+                    signOut(auth);
+                    if (onLogout) onLogout();
+                    setMenuOpen(false);
+                  }}
+                >
+                  🚪 Se déconnecter
+                </button>
+              </div>
             </>
           )}
 
           {editProfileMode && (
             <>
               <label>
-                Pseudo :
+                <span style={{ fontWeight: 600 }}>Pseudo :</span>
                 <input
                   type="text"
                   value={tempPseudo}
@@ -233,67 +226,60 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
               </label>
 
               <div style={{ marginBottom: 10 }}>
-                <label>
-                  Choisis un avatar :
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      marginTop: 6,
-                    }}
-                  >
-                    {[1, 2, 3, 4].map((n) => {
-                      const avatarPath = `/images/Avatars/avatar${n}.png`; // 🔁 Chemin corrigé
-                      return (
-                        <img
-                          key={n}
-                          src={avatarPath}
-                          alt={`Avatar ${n}`}
-                          onClick={() => setTempAvatar(avatarPath)}
-                          style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: "50%",
-                            border:
-                              tempAvatar === avatarPath
-                                ? "3px solid #4CAF50"
-                                : "2px solid #ccc",
-                            cursor: "pointer",
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                </label>
-
-                <label>
-                  Ou URL personnalisée :
-                  <input
-                    type="text"
-                    value={tempAvatar}
-                    onChange={(e) => setTempAvatar(e.target.value)}
-                    style={inputStyle()}
-                  />
-                </label>
+                <span style={{ fontWeight: 600 }}>Choisis un avatar :</span>
+                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                  {[1, 2, 3, 4].map((n) => {
+                    const avatarPath = `/images/Avatars/avatar${n}.png`;
+                    return (
+                      <img
+                        key={n}
+                        src={avatarPath}
+                        alt={`Avatar ${n}`}
+                        onClick={() => setTempAvatar(avatarPath)}
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: "50%",
+                          cursor: "pointer",
+                          objectFit: "cover",
+                          border:
+                            tempAvatar === avatarPath
+                              ? "3px solid #4CAF50"
+                              : "2px solid transparent",
+                          boxShadow:
+                            tempAvatar === avatarPath
+                              ? "0 0 6px rgba(0,0,0,0.3)"
+                              : "none",
+                          transition: "all 0.2s ease",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
               </div>
 
-              <button style={btnStyle()} onClick={saveProfile}>
-                Sauvegarder
-              </button>
-              <button
-                style={{ ...btnStyle(), backgroundColor: "#888", marginTop: 6 }}
-                onClick={() => setEditProfileMode(false)}
-              >
-                Annuler
-              </button>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 15 }}>
+                <button style={btnStyle()} onClick={saveProfile}>
+                  ✅ Enregistrer
+                </button>
+                <button
+                  style={{ ...btnStyle(), backgroundColor: "#e53935", color: "#fff" }}
+                  onClick={() => {
+                    setEditProfileMode(false);
+                    setTempPseudo(pseudo);
+                    setTempAvatar(avatar);
+                  }}
+                >
+                  ❌ Annuler
+                </button>
+              </div>
             </>
           )}
 
           {changePasswordMode && (
             <>
               <label>
-                Ancien mot de passe :
+                <span style={{ fontWeight: 600 }}>Ancien mot de passe :</span>
                 <input
                   type="password"
                   value={oldPassword}
@@ -301,9 +287,8 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                   style={inputStyle()}
                 />
               </label>
-
               <label>
-                Nouveau mot de passe :
+                <span style={{ fontWeight: 600 }}>Nouveau mot de passe :</span>
                 <input
                   type="password"
                   value={newPassword}
@@ -312,15 +297,17 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                 />
               </label>
 
-              <button style={btnStyle()} onClick={changePassword}>
-                Modifier le mot de passe
-              </button>
-              <button
-                style={{ ...btnStyle(), backgroundColor: "#888", marginTop: 6 }}
-                onClick={() => setChangePasswordMode(false)}
-              >
-                Annuler
-              </button>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 15 }}>
+                <button style={btnStyle()} onClick={changePassword}>
+                  ✅ Valider
+                </button>
+                <button
+                  style={{ ...btnStyle(), backgroundColor: "#e53935", color: "#fff" }}
+                  onClick={() => setChangePasswordMode(false)}
+                >
+                  ❌ Annuler
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -330,22 +317,21 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
 };
 
 const btnStyle = () => ({
-  display: "block",
-  width: "100%",
-  padding: "8px 12px",
-  marginTop: 10,
-  backgroundColor: "#eee",
+  padding: "8px 16px",
+  borderRadius: 6,
   border: "none",
-  borderRadius: 5,
   cursor: "pointer",
-  color: "#222",
+  backgroundColor: "#4CAF50",
+  color: "#fff",
+  fontWeight: "bold",
+  fontSize: 14,
 });
 
 const inputStyle = () => ({
   width: "100%",
-  padding: 6,
-  marginTop: 6,
-  marginBottom: 6,
+  padding: 8,
+  margin: "6px 0 12px",
+  boxSizing: "border-box",
   borderRadius: 4,
   border: "1px solid #ccc",
 });
