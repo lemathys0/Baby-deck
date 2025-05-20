@@ -3,8 +3,7 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Auth from "./components/Auth";
 import ProfileMenu from "./components/ProfileMenu";
 import GameHub from "./components/GameHub";
-
-import useOnlineStatus from "./hooks/useOnlineStatus"; // adapte le chemin si besoin
+import useOnlineStatus from "./hooks/useOnlineStatus"; // assure-toi que ce hook met bien à jour isOnline
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
@@ -32,7 +31,7 @@ const AppContent = () => {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("auth");
 
-  // Appelle ton hook ici avec user (il ne fait rien si user est null)
+  // Active la mise à jour du statut en ligne
   useOnlineStatus(user);
 
   const handleLogin = (loggedUser) => {
