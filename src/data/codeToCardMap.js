@@ -20,6 +20,10 @@ const codeToCardMap = {
   "L276": { nom: "Thimeo.png", type: "joueur" },
   "H997": { nom: "Yoris.png", type: "joueur" },
   "D384": { nom: "Maxence.png", type: "joueur" },
+  "Z473": { nom: "Faustin.png", type: "joueur" },
+  "T294": { nom: "Larry.png", type: "joueur" },
+
+
 
   // Équipements
   "P134": { nom: "Chaussure-magnetique.png", type: "equipement" },
