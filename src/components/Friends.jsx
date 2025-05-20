@@ -9,7 +9,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import useFriends from "../hooks/useFriends"; // Hook pour récupérer tous les amis
+import useFriends from "../hooks/useFriends"; // Ton hook qui récupère TOUS les amis
 
 export default function Friends({ user }) {
   const { friends, loading } = useFriends(user);
@@ -30,7 +30,7 @@ export default function Friends({ user }) {
     }
 
     try {
-      // Vérifie que l'utilisateur existe
+      // Cherche l'utilisateur par email
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", emailToAdd));
       const querySnapshot = await getDocs(q);
@@ -40,16 +40,26 @@ export default function Friends({ user }) {
         return;
       }
 
-      // Vérifie si l'email est déjà un ami
+      const friendDoc = querySnapshot.docs[0];
+      const friendData = friendDoc.data();
+      const friendUID = friendDoc.id;
+
+      // Vérifie si déjà ami
       if (friends.some((f) => f.email === emailToAdd)) {
         setStatus("Cet utilisateur est déjà votre ami.");
         return;
       }
 
-      // Ajoute le nouvel ami
-      const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, {
+      // Ajoute l'email dans ta liste d'amis
+      const myDocRef = doc(db, "users", user.uid);
+      await updateDoc(myDocRef, {
         friends: arrayUnion(emailToAdd),
+      });
+
+      // Ajoute ton email dans la liste de l'autre utilisateur
+      const friendDocRef = doc(db, "users", friendUID);
+      await updateDoc(friendDocRef, {
+        friends: arrayUnion(user.email),
       });
 
       setStatus("Ami ajouté avec succès !");
@@ -72,12 +82,7 @@ export default function Friends({ user }) {
         <ul>
           {friends.map((friend) => (
             <li key={friend.uid}>
-              {friend.pseudo || "Inconnu"} ({friend.email}){" "}
-              {friend.isOnline ? (
-                <span style={{ color: "green" }}>● en ligne</span>
-              ) : (
-                <span style={{ color: "gray" }}>● hors ligne</span>
-              )}
+              {friend.pseudo || "Inconnu"} ({friend.email})
             </li>
           ))}
         </ul>

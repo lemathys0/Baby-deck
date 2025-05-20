@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default function useFriends(user) {
@@ -7,61 +7,60 @@ export default function useFriends(user) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.uid) {
-      setFriends([]);
-      setLoading(false);
-      return;
-    }
-
     const fetchFriends = async () => {
-      setLoading(true);
-      try {
-        // Récupérer le doc user
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      if (!user?.uid || !user?.email) {
+        setFriends([]);
+        setLoading(false);
+        return;
+      }
 
-        if (!userDocSnap.exists()) {
+      try {
+        setLoading(true);
+
+        // Récupère le document de l'utilisateur actuel
+        const userRef = collection(db, "users");
+        const q = query(userRef, where("email", "==", user.email));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
           setFriends([]);
-          setLoading(false);
           return;
         }
 
-        const userData = userDocSnap.data();
+        const userData = snapshot.docs[0].data();
         const friendsEmails = userData.friends || [];
 
         if (friendsEmails.length === 0) {
           setFriends([]);
-          setLoading(false);
           return;
         }
 
-        // Firestore limite à 10 dans "in", on découpe en chunks
-        const chunkSize = 10;
+        // Firestore limite à 10 éléments dans un "in"
         const chunks = [];
-        for (let i = 0; i < friendsEmails.length; i += chunkSize) {
-          chunks.push(friendsEmails.slice(i, i + chunkSize));
+        for (let i = 0; i < friendsEmails.length; i += 10) {
+          chunks.push(friendsEmails.slice(i, i + 10));
         }
 
-        const allFriends = [];
+        const results = [];
 
         for (const chunk of chunks) {
-          const q = query(collection(db, "users"), where("email", "in", chunk));
-          const snapshot = await getDocs(q);
+          const fq = query(collection(db, "users"), where("email", "in", chunk));
+          const friendSnap = await getDocs(fq);
 
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            allFriends.push({
-              uid: docSnap.id,
-              email: data.email || "Inconnu",
-              pseudo: data.pseudo || "",
+          friendSnap.forEach((doc) => {
+            const data = doc.data();
+            results.push({
+              uid: doc.id,
+              email: data.email,
+              pseudo: data.pseudo || "Inconnu",
               isOnline: data.isOnline || false,
             });
           });
         }
 
-        setFriends(allFriends);
+        setFriends(results);
       } catch (error) {
-        console.error("Erreur chargement amis :", error);
+        console.error("Erreur lors du chargement des amis :", error);
         setFriends([]);
       } finally {
         setLoading(false);
