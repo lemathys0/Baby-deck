@@ -1,94 +1,77 @@
-import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, query, collection, where, getDocs } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
-const Friends = ({ user }) => {
-  const [friends, setFriends] = useState([]);
-  const [newFriendEmail, setNewFriendEmail] = useState("");
+export default function useOnlineFriends(user) {
+  const [onlineFriends, setOnlineFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFriends = async () => {
-      if (!user?.uid) return;
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setFriends(data.friends || []);
+    if (!user?.uid) {
+      setOnlineFriends([]);
+      setLoading(false);
+      return;
+    }
+
+    const fetchOnlineFriends = async () => {
+      setLoading(true);
+      try {
+        // Récupérer le doc user
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+          setOnlineFriends([]);
+          setLoading(false);
+          return;
+        }
+
+        const userData = userDocSnap.data();
+        const friendsEmails = userData.friends || []; // Liste d'emails
+
+        if (friendsEmails.length === 0) {
+          setOnlineFriends([]);
+          setLoading(false);
+          return;
+        }
+
+        // Récupérer les amis par email via une requête 'where email in [...]'
+        // Attention : Firestore limite à 10 items max dans un 'in' 
+        // (si plus de 10 amis, faudra batcher la requête)
+
+        const usersCollection = collection(db, "users");
+
+        // Découper en chunks de 10 si nécessaire
+        const chunkSize = 10;
+        let online = [];
+
+        for (let i = 0; i < friendsEmails.length; i += chunkSize) {
+          const chunk = friendsEmails.slice(i, i + chunkSize);
+          const q = query(usersCollection, where("email", "in", chunk));
+          const querySnapshot = await getDocs(q);
+
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.isOnline) {
+              online.push({
+                uid: docSnap.id,
+                email: data.email,
+                pseudo: data.pseudo || "Inconnu",
+              });
+            }
+          });
+        }
+
+        setOnlineFriends(online);
+      } catch (error) {
+        console.error("Erreur fetch online friends :", error);
+        setOnlineFriends([]);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchFriends();
+
+    fetchOnlineFriends();
   }, [user]);
 
-  const isValidEmail = (email) => {
-    // Simple regex pour vérifier la validité de l'email
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const addFriend = async () => {
-    const emailToAdd = newFriendEmail.trim().toLowerCase();
-
-    if (!emailToAdd) {
-      alert("Merci d'entrer l'email d'un ami.");
-      return;
-    }
-    if (!isValidEmail(emailToAdd)) {
-      alert("Merci d'entrer un email valide.");
-      return;
-    }
-    if (emailToAdd === user.email.toLowerCase()) {
-      alert("Tu ne peux pas t'ajouter toi-même !");
-      return;
-    }
-    if (friends.includes(emailToAdd)) {
-      alert("Cet ami est déjà dans ta liste.");
-      return;
-    }
-
-    try {
-      // Vérifier que l'utilisateur existe dans la base (via email)
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", emailToAdd));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        alert("Cet utilisateur n'existe pas.");
-        return;
-      }
-
-      // Ajouter l'ami
-      const userRef = doc(db, "users", user.uid);
-      const updatedFriends = [...friends, emailToAdd];
-      await updateDoc(userRef, { friends: updatedFriends });
-      setFriends(updatedFriends);
-      setNewFriendEmail("");
-      alert("Ami ajouté !");
-    } catch (e) {
-      alert("Erreur lors de l'ajout : " + e.message);
-    }
-  };
-
-  return (
-    <div>
-      <h2>Mes amis</h2>
-      <ul>
-        {friends.length === 0 ? (
-          <li>Aucun ami ajouté pour le moment.</li>
-        ) : (
-          friends.map((friendEmail, idx) => <li key={idx}>{friendEmail}</li>)
-        )}
-      </ul>
-      <input
-        type="email"
-        placeholder="Email de ton ami"
-        value={newFriendEmail}
-        onChange={(e) => setNewFriendEmail(e.target.value)}
-        style={{ padding: 8, width: "70%", marginRight: 8 }}
-      />
-      <button onClick={addFriend} style={{ padding: "8px 12px" }}>
-        Ajouter
-      </button>
-    </div>
-  );
-};
-
-export default Friends;
+  return { onlineFriends, loading };
+}

@@ -3,6 +3,7 @@ import useOnlineFriends from "../hooks/useOnlineFriends";
 import BabyDeckContent from "./BabyDeckContent";
 
 const CreateMatch = ({ user }) => {
+  // Déstructure correctement le retour du hook
   const { onlineFriends, loading } = useOnlineFriends(user);
 
   const [selectedFriend, setSelectedFriend] = useState(null);
