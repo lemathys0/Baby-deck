@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default function useOnlineFriends(user) {
@@ -18,6 +18,7 @@ export default function useOnlineFriends(user) {
       try {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
+
         if (!userDocSnap.exists()) {
           setOnlineFriends([]);
           setLoading(false);
@@ -25,29 +26,43 @@ export default function useOnlineFriends(user) {
         }
 
         const userData = userDocSnap.data();
-        const friendsUIDs = userData.friends || []; // supposé liste d'UIDs
+        const friends = userData.friends || []; // emails
 
-        if (friendsUIDs.length === 0) {
+        if (friends.length === 0) {
           setOnlineFriends([]);
           setLoading(false);
           return;
         }
 
-        // Récupérer les docs des amis
-        const friendDocsPromises = friendsUIDs.map((friendUid) => getDoc(doc(db, "users", friendUid)));
-        const friendDocs = await Promise.all(friendDocsPromises);
+        // Firestore autorise 10 éléments max dans une clause "in"
+        const chunks = [];
+        for (let i = 0; i < friends.length; i += 10) {
+          chunks.push(friends.slice(i, i + 10));
+        }
 
-        const online = friendDocs
-          .filter((snap) => snap.exists() && snap.data().isOnline)
-          .map((snap) => ({
-            uid: snap.id,
-            email: snap.data().email || "Pas d'email",
-            pseudo: snap.data().pseudo || "Inconnu",
-          }));
+        const online = [];
+
+        for (const chunk of chunks) {
+          const q = query(
+            collection(db, "users"),
+            where("email", "in", chunk),
+            where("isOnline", "==", true)
+          );
+
+          const snapshot = await getDocs(q);
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            online.push({
+              uid: docSnap.id,
+              email: data.email || "Inconnu",
+              pseudo: data.pseudo || "",
+            });
+          });
+        }
 
         setOnlineFriends(online);
       } catch (error) {
-        console.error("Erreur fetch online friends :", error);
+        console.error("Erreur chargement amis en ligne :", error);
         setOnlineFriends([]);
       } finally {
         setLoading(false);
