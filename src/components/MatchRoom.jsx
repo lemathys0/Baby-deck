@@ -1,163 +1,123 @@
-import React, { useState } from "react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+// src/components/MatchRoom.jsx
+import React, { useEffect, useState } from "react";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import BabyDeckContent from "./BabyDeckContent"; // ta liste de cartes joueurs
 
-const ItemTypes = {
-  CARD: "card",
-};
+const MatchRoom = ({ user, matchId }) => {
+  const [matchData, setMatchData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [roles, setRoles] = useState({});
+  const [ready, setReady] = useState(false);
 
-function DraggableCard({ card, onDropCard }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.CARD,
-    item: { id: card.id },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
-  return (
-    <div
-      ref={drag}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        padding: 8,
-        margin: "0 10px",
-        border: "1px solid #888",
-        borderRadius: 4,
-        backgroundColor: "#fff",
-        cursor: "grab",
-        userSelect: "none",
-        width: 100,
-        textAlign: "center",
-      }}
-    >
-      {card.name}
-    </div>
-  );
-}
-
-function DropZone({ position, card, onDrop }) {
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    accept: ItemTypes.CARD,
-    drop: (item) => onDrop(item.id, position),
-    canDrop: (item) => card === null || card.id === item.id,
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop(),
-    }),
-  }));
-
-  return (
-    <div
-      ref={drop}
-      style={{
-        height: 140,
-        width: 120,
-        border: "2px dashed #666",
-        borderRadius: 6,
-        margin: "0 10px",
-        backgroundColor: isOver && canDrop ? "#acf" : "#eee",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: "bold",
-        userSelect: "none",
-      }}
-    >
-      {card ? card.name : position === "attack" ? "Attaque" : "Défense"}
-    </div>
-  );
-}
-
-export default function MatchRoom({ user }) {
-  // Exemple : cartes débloquées par l'utilisateur
-  const unlockedCards = [
-    { id: "c1", name: "Bébé Dragon" },
-    { id: "c2", name: "Petit Ninja" },
-    { id: "c3", name: "Mini Sorcier" },
-    { id: "c4", name: "Petit Guerrier" },
-  ];
-
-  // États des cartes sélectionnées (attaque / défense)
-  const [selectedCards, setSelectedCards] = useState({
-    attack: null,
-    defense: null,
-  });
-
-  // Fonction appelée quand on drop une carte sur une zone
-  const handleDrop = (cardId, position) => {
-    // Trouver la carte à partir de son id
-    const card = unlockedCards.find((c) => c.id === cardId);
-    if (!card) return;
-
-    // On autorise une seule carte par position
-    setSelectedCards((prev) => {
-      // Si la carte est déjà sélectionnée à l’autre position, on la retire de là-bas
-      let newSelected = { ...prev };
-      if (prev.attack?.id === cardId) newSelected.attack = null;
-      if (prev.defense?.id === cardId) newSelected.defense = null;
-
-      // On place la carte sur la nouvelle position
-      newSelected[position] = card;
-      return newSelected;
+  useEffect(() => {
+    if (!matchId) return;
+    const matchRef = doc(db, "matches", matchId);
+    const unsubscribe = onSnapshot(matchRef, docSnap => {
+      if (docSnap.exists()) {
+        setMatchData(docSnap.data());
+        setLoading(false);
+      } else {
+        setMatchData(null);
+        setLoading(false);
+      }
     });
+    return () => unsubscribe();
+  }, [matchId]);
+
+  // Mettre à jour la sélection dans Firestore
+  const updateSelection = async (players, roles) => {
+    if (!matchData) return;
+    const matchRef = doc(db, "matches", matchId);
+
+    const updatedPlayers = {
+      ...matchData.players,
+      [user.uid]: { selectedPlayers: players, roles }
+    };
+
+    await updateDoc(matchRef, { players: updatedPlayers });
   };
 
-  // Carte disponibles = toutes cartes - celles déjà sélectionnées
-  const availableCards = unlockedCards.filter(
-    (card) =>
-      card.id !== selectedCards.attack?.id && card.id !== selectedCards.defense?.id
-  );
+  // Sur validation
+  const handleReady = async () => {
+    if (selectedPlayers.length !== 2) {
+      alert("Vous devez sélectionner 2 joueurs");
+      return;
+    }
+    await updateSelection(selectedPlayers, roles);
+    setReady(true);
+
+    // Vérifier si l’autre joueur est prêt (a 2 joueurs sélectionnés)
+    const otherUid = Object.keys(matchData.players).find(uid => uid !== user.uid);
+    if (
+      matchData.players[otherUid] &&
+      matchData.players[otherUid].selectedPlayers.length === 2
+    ) {
+      // Mettre à jour status du match à "started"
+      const matchRef = doc(db, "matches", matchId);
+      await updateDoc(matchRef, { status: "started" });
+    }
+  };
+
+  if (loading) return <p>Chargement...</p>;
+  if (!matchData) return <p>Match non trouvé.</p>;
+
+  const isStarted = matchData.status === "started";
+
+  if (isStarted) {
+    return (
+      <div>
+        <h2>Match démarré !</h2>
+        {/* TODO : afficher le match en live */}
+        <pre>{JSON.stringify(matchData, null, 2)}</pre>
+      </div>
+    );
+  }
+
+  // Récupérer les joueurs sélectionnés pour ce joueur (si déjà fait)
+  const mySelection = matchData.players[user.uid] || { selectedPlayers: [], roles: {} };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <h2>Choisissez vos joueurs</h2>
+    <div>
+      <h2>Sélectionnez vos 2 joueurs</h2>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 20,
+      <BabyDeckContent
+        user={user}
+        selectedPlayers={mySelection.selectedPlayers}
+        onSelectPlayer={(player) => {
+          let newSelection = [...selectedPlayers];
+          // toggle sélection
+          if (newSelection.find(p => p.id === player.id)) {
+            newSelection = newSelection.filter(p => p.id !== player.id);
+          } else if (newSelection.length < 2) {
+            newSelection.push(player);
+          }
+          setSelectedPlayers(newSelection);
         }}
-      >
-        <DropZone
-          position="defense"
-          card={selectedCards.defense}
-          onDrop={handleDrop}
-        />
-        <DropZone
-          position="attack"
-          card={selectedCards.attack}
-          onDrop={handleDrop}
-        />
-      </div>
+      />
 
-      <h3>Vos cartes débloquées</h3>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: 10,
-          backgroundColor: "#ddd",
-          borderRadius: 8,
-          overflowX: "auto",
-        }}
-      >
-        {availableCards.length === 0 && <p>Aucune carte disponible.</p>}
-        {availableCards.map((card) => (
-          <DraggableCard key={card.id} card={card} />
+      <div>
+        <h3>Choisissez les rôles :</h3>
+        {selectedPlayers.map(player => (
+          <div key={player.id}>
+            <span>{player.name}</span>
+            <select
+              value={roles[player.id] || "attack"}
+              onChange={e => setRoles({ ...roles, [player.id]: e.target.value })}
+            >
+              <option value="attack">Attaquant</option>
+              <option value="defense">Défenseur</option>
+            </select>
+          </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <button
-          disabled={!selectedCards.attack || !selectedCards.defense}
-          onClick={() => alert(`Match lancé avec:\nAttaque: ${selectedCards.attack.name}\nDéfense: ${selectedCards.defense.name}`)}
-          style={{ padding: "10px 20px", fontWeight: "bold" }}
-        >
-          Lancer le match
-        </button>
-      </div>
-    </DndProvider>
+      <button onClick={handleReady} disabled={ready || selectedPlayers.length !== 2}>
+        {ready ? "En attente de l'autre joueur..." : "Valider la sélection"}
+      </button>
+    </div>
   );
-}
+};
+
+export default MatchRoom;
