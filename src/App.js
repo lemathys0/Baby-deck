@@ -1,13 +1,14 @@
 import React, { useState } from "react";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Auth from "./components/Auth";
 import ProfileMenu from "./components/ProfileMenu";
-import GameHub from "./components/GameHub";
-import useOnlineStatus from "./hooks/useOnlineStatus"; // assure-toi que ce hook met bien à jour isOnline
+import CreateMatch from "./components/CreateMatch";
+import MatchRoom from "./components/MatchRoom";
+import useOnlineStatus from "./hooks/useOnlineStatus";
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
-
   return (
     <button
       onClick={toggleTheme}
@@ -26,23 +27,41 @@ const ThemeToggleButton = () => {
   );
 };
 
+const MatchPage = ({ user }) => {
+  const { matchId } = useParams();
+  return <MatchRoom user={user} matchId={matchId} />;
+};
+
 const AppContent = () => {
   const { theme } = useTheme();
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState("auth");
 
-  // Active la mise à jour du statut en ligne
   useOnlineStatus(user);
 
   const handleLogin = (loggedUser) => {
     setUser(loggedUser);
-    setPage("gamehub");
   };
 
   const handleLogout = () => {
     setUser(null);
-    setPage("auth");
   };
+
+  if (!user) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: theme === "dark" ? "#121212" : "#fafafa",
+          color: theme === "dark" ? "#eee" : "#111",
+          padding: 20,
+          transition: "background-color 0.3s, color 0.3s",
+        }}
+      >
+        <ThemeToggleButton />
+        <Auth theme={theme} onLogin={handleLogin} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -66,11 +85,15 @@ const AppContent = () => {
         }}
       >
         <ThemeToggleButton />
-        {user && <ProfileMenu user={user} onLogout={handleLogout} theme={theme} />}
+        <ProfileMenu user={user} onLogout={handleLogout} theme={theme} />
       </div>
 
-      {!user && <Auth theme={theme} onLogin={handleLogin} />}
-      {user && page === "gamehub" && <GameHub user={user} />}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<CreateMatch user={user} />} />
+          <Route path="/match/:matchId" element={<MatchPage user={user} />} />
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 };
