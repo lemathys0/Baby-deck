@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, arrayUnion, onSnapshot } from "firebase/firestore";
 import CardGrid from "./CardGrid";
+import ConfettiBurst from "./ConfettiBurst";
 import codeToCardMap from "../data/codeToCardMap";
 import { useTheme } from "../context/ThemeContext";
 
@@ -11,6 +12,8 @@ export default function BabyDeckContent({ user }) {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [cards, setCards] = useState([]);
+  const [highlightedCode, setHighlightedCode] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const [categorizedCards, setCategorizedCards] = useState({
     joueur: [],
@@ -42,10 +45,7 @@ export default function BabyDeckContent({ user }) {
               categorized[type].push(code);
             } else {
               categorized.defi.push(code);
-              console.warn(`Type inconnu "${type}" pour la carte ${code}, classée en défi par défaut.`);
             }
-          } else {
-            console.warn(`Code non trouvé dans codeToCardMap : ${code}`);
           }
         });
 
@@ -56,7 +56,6 @@ export default function BabyDeckContent({ user }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Nouveau pattern : 1 lettre majuscule + 3 chiffres
   const codePattern = /^[A-Z]\d{3}$/;
 
   const handleCodeSubmit = async () => {
@@ -89,11 +88,23 @@ export default function BabyDeckContent({ user }) {
       await updateDoc(docRef, { cards: arrayUnion(newCardCode) });
       setMessage("🎉 Carte débloquée !");
       setCode("");
+      setHighlightedCode(newCardCode);
+      setShowConfetti(true);
+      setTimeout(() => {
+        setHighlightedCode(null);
+        setShowConfetti(false);
+      }, 2000);
     } catch (error) {
       try {
         await setDoc(doc(db, "users", user.uid), { cards: [newCardCode] });
         setMessage("🎉 Carte débloquée !");
         setCode("");
+        setHighlightedCode(newCardCode);
+        setShowConfetti(true);
+        setTimeout(() => {
+          setHighlightedCode(null);
+          setShowConfetti(false);
+        }, 2000);
       } catch (e) {
         setMessage("⚠️ Erreur : " + e.message);
       }
@@ -141,7 +152,13 @@ export default function BabyDeckContent({ user }) {
         <li>📦 Total : {cards.length}</li>
       </ul>
 
-      <CardGrid categorizedCards={categorizedCards} theme={theme} codeToCardMap={codeToCardMap} />
+      {showConfetti && <ConfettiBurst />}
+      <CardGrid
+        categorizedCards={categorizedCards}
+        theme={theme}
+        codeToCardMap={codeToCardMap}
+        highlightedCode={highlightedCode}
+      />
     </div>
   );
 }
