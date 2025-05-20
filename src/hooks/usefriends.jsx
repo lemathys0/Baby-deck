@@ -16,8 +16,10 @@ export default function useFriends(user) {
     const fetchFriends = async () => {
       setLoading(true);
       try {
+        // Récupérer le doc user
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
+
         if (!userDocSnap.exists()) {
           setFriends([]);
           setLoading(false);
@@ -33,18 +35,19 @@ export default function useFriends(user) {
           return;
         }
 
-        // Firestore limite à 10 emails dans 'in', on découpe en batch
+        // Firestore limite à 10 dans "in", on découpe en chunks
         const chunkSize = 10;
         const chunks = [];
         for (let i = 0; i < friendsEmails.length; i += chunkSize) {
           chunks.push(friendsEmails.slice(i, i + chunkSize));
         }
 
-        let allFriends = [];
+        const allFriends = [];
 
         for (const chunk of chunks) {
           const q = query(collection(db, "users"), where("email", "in", chunk));
           const snapshot = await getDocs(q);
+
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             allFriends.push({

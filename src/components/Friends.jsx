@@ -1,18 +1,25 @@
 import React, { useState } from "react";
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 import { db } from "../firebase";
-import useFriends from "../hooks/useFriends"; // Le hook qui récupère tous les amis
+import useFriends from "../hooks/useFriends"; // Hook pour récupérer tous les amis
 
 export default function Friends({ user }) {
   const { friends, loading } = useFriends(user);
-
   const [emailToAdd, setEmailToAdd] = useState("");
   const [status, setStatus] = useState("");
 
   const handleAddFriend = async () => {
     setStatus("");
 
-    if (!emailToAdd) {
+    if (!emailToAdd.trim()) {
       setStatus("Veuillez saisir un email.");
       return;
     }
@@ -23,7 +30,7 @@ export default function Friends({ user }) {
     }
 
     try {
-      // Vérifier que l'email existe bien dans la collection users
+      // Vérifie que l'utilisateur existe
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", emailToAdd));
       const querySnapshot = await getDocs(q);
@@ -33,13 +40,13 @@ export default function Friends({ user }) {
         return;
       }
 
-      // Vérifier si l'email est déjà dans la liste des amis
+      // Vérifie si l'email est déjà un ami
       if (friends.some((f) => f.email === emailToAdd)) {
         setStatus("Cet utilisateur est déjà votre ami.");
         return;
       }
 
-      // Ajouter l'email dans la liste friends de l'utilisateur
+      // Ajoute le nouvel ami
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
         friends: arrayUnion(emailToAdd),
@@ -76,7 +83,7 @@ export default function Friends({ user }) {
         </ul>
       )}
 
-      {/* Section pour ajouter un ami */}
+      {/* Ajouter un ami par email */}
       <div style={{ marginTop: 30 }}>
         <h3>Ajouter un ami par email :</h3>
         <input
