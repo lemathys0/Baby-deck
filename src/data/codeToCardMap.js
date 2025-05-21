@@ -22,7 +22,9 @@ const codeToCardMap = {
   "D384": { nom: "Maxence.png", type: "joueur" },
   "Z473": { nom: "Faustin.png", type: "joueur" },
   "T294": { nom: "Larry.png", type: "joueur" },
-
+  "U934": { nom: "Schana.png", type: "joueur" },
+  "P249": { nom: "Lucas.png", type: "joueur" },
+  "F825": { nom: "Ambre.png", type: "joueur" },
 
 
   // Équipements
@@ -30,6 +32,7 @@ const codeToCardMap = {
   "E902": { nom: "Telescope.png", type: "equipement" },
   "G741": { nom: "Gant.png", type: "equipement" },
   "V610": { nom: "Ballon.png", type: "equipement" },
+  "Y195": { nom: "Poignée_de_feu.png", type: "equipement" },
 
   // Défis
   "O503": { nom: "Double-passe.png", type: "defi" },
