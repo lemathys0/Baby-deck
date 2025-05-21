@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Auth from "./components/Auth";
 import ProfileMenu from "./components/ProfileMenu";
-
+import BabyDeckContent from "./components/BabyDeckContent";
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
@@ -24,24 +24,12 @@ const ThemeToggleButton = () => {
   );
 };
 
-const MatchPage = ({ user }) => {
-  const { matchId } = useParams();
-  return <MatchRoom user={user} matchId={matchId} />;
-};
-
 const AppContent = () => {
   const { theme } = useTheme();
   const [user, setUser] = useState(null);
 
-  useOnlineStatus(user);
-
-  const handleLogin = (loggedUser) => {
-    setUser(loggedUser);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-  };
+  const handleLogin = (loggedUser) => setUser(loggedUser);
+  const handleLogout = () => setUser(null);
 
   if (!user) {
     return (
@@ -51,7 +39,6 @@ const AppContent = () => {
           backgroundColor: theme === "dark" ? "#121212" : "#fafafa",
           color: theme === "dark" ? "#eee" : "#111",
           padding: 20,
-          transition: "background-color 0.3s, color 0.3s",
         }}
       >
         <ThemeToggleButton />
@@ -67,7 +54,6 @@ const AppContent = () => {
         backgroundColor: theme === "dark" ? "#121212" : "#fafafa",
         color: theme === "dark" ? "#eee" : "#111",
         padding: 20,
-        transition: "background-color 0.3s, color 0.3s",
       }}
     >
       <div
@@ -85,12 +71,7 @@ const AppContent = () => {
         <ProfileMenu user={user} onLogout={handleLogout} theme={theme} />
       </div>
 
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<CreateMatch user={user} />} />
-          <Route path="/match/:matchId" element={<MatchPage user={user} />} />
-        </Routes>
-      </BrowserRouter>
+      <BabyDeckContent user={user} />
     </div>
   );
 };
