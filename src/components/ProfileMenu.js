@@ -195,19 +195,21 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                 <button style={btnStyle()} onClick={() => setChangePasswordMode(true)}>
                   🔐 Changer le mot de passe
                 </button>
-                <button style={btnStyle()} onClick={() => window.location.href = "/gamehub"}>
-                  🎮 Game Hub
-                </button>
+
                 <button
                   style={{
                     ...btnStyle(),
                     backgroundColor: "#e53935",
                     color: "#fff",
                   }}
-                  onClick={() => {
-                    signOut(auth);
-                    if (onLogout) onLogout();
-                    setMenuOpen(false);
+                  onClick={async () => {
+                    try {
+                      await signOut(auth);
+                      if (onLogout) onLogout();
+                      setMenuOpen(false);
+                    } catch (error) {
+                      console.error("Erreur lors de la déconnexion :", error);
+                    }
                   }}
                 >
                   🚪 Se déconnecter
