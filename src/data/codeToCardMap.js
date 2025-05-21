@@ -25,7 +25,7 @@ const codeToCardMap = {
   "U934": { nom: "Schana.png", type: "joueur" },
   "P249": { nom: "Lucas.png", type: "joueur" },
   "F825": { nom: "Ambre.png", type: "joueur" },
-
+  "C478": { nom: "Ambre.png", type: "joueur" },
 
   // Équipements
   "P134": { nom: "Chaussure-magnetique.png", type: "equipement" },
