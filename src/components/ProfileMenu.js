@@ -207,8 +207,8 @@ const ProfileMenu = ({ user, theme = "light", onLogout }) => {
                       await signOut(auth);
                       if (onLogout) onLogout();
                       setMenuOpen(false);
-                    } catch (error) {
-                      console.error("Erreur lors de la déconnexion :", error);
+                    } catch (e) {
+                      alert("Erreur lors de la déconnexion : " + e.message);
                     }
                   }}
                 >
